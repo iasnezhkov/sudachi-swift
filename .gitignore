@@ -1,0 +1,26 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Build artifacts
+build/
+
+# Dictionary blobs (downloaded by scripts/fetch-dictionary.sh, too
+# large to track in git — 40-700 MB depending on edition)
+dictionaries/
+
+# Swift Package Manager scratch
+.swiftpm/
+.build/
+Packages.resolved
+
+# Xcode-side metadata
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# macOS
+.DS_Store
+
+# Generated profiling output (cargo + tests)
+*.profraw

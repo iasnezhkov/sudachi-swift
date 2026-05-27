@@ -1,0 +1,53 @@
+namespace suji_sudachi {
+  string katakana_to_hiragana(string s);
+};
+
+enum SplitMode {
+  "A",
+  "B",
+  "C",
+};
+
+[Error]
+enum SudachiError {
+  "DictionaryNotFound",
+  "DictionaryInvalid",
+  "ConfigInvalid",
+  "Tokenization",
+};
+
+interface SudachiDictionary {
+  [Throws=SudachiError]
+  constructor(
+    string system_dict_path,
+    sequence<string> user_dict_paths,
+    string resource_dir
+  );
+};
+
+interface SudachiTokenizer {
+  [Throws=SudachiError]
+  constructor(SudachiDictionary dictionary, SplitMode mode);
+
+  [Throws=SudachiError]
+  sequence<Morpheme> tokenize(string text);
+
+  /// Re-tokenize a substring (typically a single morpheme's surface) with
+  /// a different split mode. Useful for showing Mode A breakdown of a
+  /// Mode C compound on tap, without rerunning the full pipeline.
+  [Throws=SudachiError]
+  sequence<Morpheme> tokenize_with_mode(string text, SplitMode mode);
+};
+
+dictionary Morpheme {
+  string surface;
+  string reading_form;
+  string dictionary_form;
+  string normalized_form;
+  sequence<string> part_of_speech;
+  sequence<u32> synonym_group_ids;
+  boolean is_oov;
+  u32 word_id;
+  u32 begin;
+  u32 end;
+};
