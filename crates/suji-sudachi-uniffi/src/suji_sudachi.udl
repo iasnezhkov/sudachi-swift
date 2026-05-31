@@ -37,6 +37,33 @@ interface SudachiTokenizer {
   /// Mode C compound on tap, without rerunning the full pipeline.
   [Throws=SudachiError]
   sequence<Morpheme> tokenize_with_mode(string text, SplitMode mode);
+
+  /// Lean variant of `tokenize` returning only the fields the Swift
+  /// merge/display pipeline actually consumes, with `part_of_speech`
+  /// pre-joined into a single comma string plus an integer `pos_id`.
+  /// Cuts per-morpheme allocations and FFI marshalling roughly in half
+  /// versus the full `Morpheme`. Prefer this for hot paths (reader,
+  /// catalog).
+  [Throws=SudachiError]
+  sequence<MorphemeLite> tokenize_lite(string text);
+
+  /// Same as `tokenize_lite` but with an explicit split mode.
+  [Throws=SudachiError]
+  sequence<MorphemeLite> tokenize_lite_with_mode(string text, SplitMode mode);
+
+  /// Batch tokenization: tokenize many strings in one FFI crossing,
+  /// reusing a single locked tokenizer. Avoids per-sentence FFI overhead
+  /// when processing a whole document/catalog. Uses the tokenizer's
+  /// default mode.
+  [Throws=SudachiError]
+  sequence<sequence<MorphemeLite>> tokenize_many(sequence<string> texts);
+
+  /// Same as `tokenize_many` but with an explicit split mode.
+  [Throws=SudachiError]
+  sequence<sequence<MorphemeLite>> tokenize_many_with_mode(
+    sequence<string> texts,
+    SplitMode mode
+  );
 };
 
 dictionary Morpheme {
@@ -50,4 +77,15 @@ dictionary Morpheme {
   u32 word_id;
   u32 begin;
   u32 end;
+};
+
+/// Compact morpheme for the Swift display/merge pipeline. Carries only the
+/// consumed fields, with `part_of_speech` pre-joined (matching how the
+/// Swift side stores it) and a raw `pos_id` for cheap integer checks.
+dictionary MorphemeLite {
+  string surface;
+  string dictionary_form;
+  string reading_form;
+  string part_of_speech;
+  u16 pos_id;
 };

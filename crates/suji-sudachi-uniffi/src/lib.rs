@@ -86,6 +86,19 @@ pub struct Morpheme {
     pub end: u32,
 }
 
+// ----- Morpheme (compact FFI value type) -----
+
+/// Lean morpheme carrying only the fields the Swift display/merge pipeline
+/// consumes, with `part_of_speech` pre-joined into a single comma string
+/// and a raw `pos_id` for cheap integer checks. See `tokenize_lite`.
+pub struct MorphemeLite {
+    pub surface: String,
+    pub dictionary_form: String,
+    pub reading_form: String,
+    pub part_of_speech: String,
+    pub pos_id: u16,
+}
+
 // ----- Dictionary -----
 
 pub struct SudachiDictionary {
@@ -179,6 +192,98 @@ impl SudachiTokenizer {
                 // indices misalign on every kanji.
                 begin: m.begin_c() as u32,
                 end: m.end_c() as u32,
+            })
+            .collect();
+
+        Ok(result)
+    }
+
+    // ----- Lean / batch API (additive; existing methods unchanged) -----
+
+    /// Lean single-text tokenize. See `MorphemeLite`.
+    pub fn tokenize_lite(
+        &self,
+        text: String,
+    ) -> Result<Vec<MorphemeLite>, SudachiError> {
+        self.tokenize_lite_with_mode(text, mode_from(self.default_mode))
+    }
+
+    /// Lean single-text tokenize with an explicit split mode.
+    pub fn tokenize_lite_with_mode(
+        &self,
+        text: String,
+        mode: SplitMode,
+    ) -> Result<Vec<MorphemeLite>, SudachiError> {
+        let mut tok = self.tok.lock();
+        let restore = tok.set_mode(mode.into());
+        let result = self.tokenize_lite_locked(&mut tok, &text);
+        // restore mode whether tokenization succeeded or not so we don't
+        // leak state into the next call.
+        let _ = tok.set_mode(restore);
+        result
+    }
+
+    /// Batch tokenize using the tokenizer's default mode.
+    pub fn tokenize_many(
+        &self,
+        texts: Vec<String>,
+    ) -> Result<Vec<Vec<MorphemeLite>>, SudachiError> {
+        self.tokenize_many_with_mode(texts, mode_from(self.default_mode))
+    }
+
+    /// Batch tokenize with an explicit split mode, holding the lock once for
+    /// the whole batch so we pay a single FFI crossing and a single lock.
+    pub fn tokenize_many_with_mode(
+        &self,
+        texts: Vec<String>,
+        mode: SplitMode,
+    ) -> Result<Vec<Vec<MorphemeLite>>, SudachiError> {
+        let mut tok = self.tok.lock();
+        let restore = tok.set_mode(mode.into());
+
+        let mut out = Vec::with_capacity(texts.len());
+        let mut error = None;
+        for text in &texts {
+            match self.tokenize_lite_locked(&mut tok, text) {
+                Ok(v) => out.push(v),
+                Err(e) => {
+                    error = Some(e);
+                    break;
+                }
+            }
+        }
+
+        let _ = tok.set_mode(restore);
+        match error {
+            Some(e) => Err(e),
+            None => Ok(out),
+        }
+    }
+
+    /// Shared core for the lean API: tokenize one string into `MorphemeLite`
+    /// with the tokenizer already locked and its mode already set. The
+    /// caller is responsible for mode restore.
+    fn tokenize_lite_locked(
+        &self,
+        tok: &mut StatefulTokenizer<Arc<JapaneseDictionary>>,
+        text: &str,
+    ) -> Result<Vec<MorphemeLite>, SudachiError> {
+        tok.reset().push_str(text);
+        tok.do_tokenize()?;
+
+        let mut morphemes = MorphemeList::empty(self.dict.clone());
+        morphemes.collect_results(tok)?;
+
+        let result: Vec<MorphemeLite> = morphemes
+            .iter()
+            .map(|m| MorphemeLite {
+                surface: m.surface().to_string(),
+                dictionary_form: m.dictionary_form().to_string(),
+                reading_form: m.reading_form().to_string(),
+                // Pre-join here so Swift doesn't marshal 6 strings per token
+                // just to `.joined(",")` them on the other side.
+                part_of_speech: m.part_of_speech().join(","),
+                pos_id: m.part_of_speech_id(),
             })
             .collect();
 

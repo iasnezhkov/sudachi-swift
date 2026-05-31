@@ -419,6 +419,22 @@ fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterUInt16: FfiConverterPrimitive {
+    typealias FfiType = UInt16
+    typealias SwiftType = UInt16
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt16 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
     typealias FfiType = UInt32
     typealias SwiftType = UInt32
@@ -621,6 +637,34 @@ public protocol SudachiTokenizerProtocol: AnyObject, Sendable {
     func tokenize(text: String) throws  -> [Morpheme]
     
     /**
+     * Lean variant of `tokenize` returning only the fields the Swift
+     * merge/display pipeline actually consumes, with `part_of_speech`
+     * pre-joined into a single comma string plus an integer `pos_id`.
+     * Cuts per-morpheme allocations and FFI marshalling roughly in half
+     * versus the full `Morpheme`. Prefer this for hot paths (reader,
+     * catalog).
+     */
+    func tokenizeLite(text: String) throws  -> [MorphemeLite]
+    
+    /**
+     * Same as `tokenize_lite` but with an explicit split mode.
+     */
+    func tokenizeLiteWithMode(text: String, mode: SplitMode) throws  -> [MorphemeLite]
+    
+    /**
+     * Batch tokenization: tokenize many strings in one FFI crossing,
+     * reusing a single locked tokenizer. Avoids per-sentence FFI overhead
+     * when processing a whole document/catalog. Uses the tokenizer's
+     * default mode.
+     */
+    func tokenizeMany(texts: [String]) throws  -> [[MorphemeLite]]
+    
+    /**
+     * Same as `tokenize_many` but with an explicit split mode.
+     */
+    func tokenizeManyWithMode(texts: [String], mode: SplitMode) throws  -> [[MorphemeLite]]
+    
+    /**
      * Re-tokenize a substring (typically a single morpheme's surface) with
      * a different split mode. Useful for showing Mode A breakdown of a
      * Mode C compound on tap, without rerunning the full pipeline.
@@ -695,6 +739,64 @@ open func tokenize(text: String)throws  -> [Morpheme]  {
     uniffi_suji_sudachi_fn_method_sudachitokenizer_tokenize(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(text),$0
+    )
+})
+}
+    
+    /**
+     * Lean variant of `tokenize` returning only the fields the Swift
+     * merge/display pipeline actually consumes, with `part_of_speech`
+     * pre-joined into a single comma string plus an integer `pos_id`.
+     * Cuts per-morpheme allocations and FFI marshalling roughly in half
+     * versus the full `Morpheme`. Prefer this for hot paths (reader,
+     * catalog).
+     */
+open func tokenizeLite(text: String)throws  -> [MorphemeLite]  {
+    return try  FfiConverterSequenceTypeMorphemeLite.lift(try rustCallWithError(FfiConverterTypeSudachiError_lift) {
+    uniffi_suji_sudachi_fn_method_sudachitokenizer_tokenize_lite(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(text),$0
+    )
+})
+}
+    
+    /**
+     * Same as `tokenize_lite` but with an explicit split mode.
+     */
+open func tokenizeLiteWithMode(text: String, mode: SplitMode)throws  -> [MorphemeLite]  {
+    return try  FfiConverterSequenceTypeMorphemeLite.lift(try rustCallWithError(FfiConverterTypeSudachiError_lift) {
+    uniffi_suji_sudachi_fn_method_sudachitokenizer_tokenize_lite_with_mode(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(text),
+        FfiConverterTypeSplitMode_lower(mode),$0
+    )
+})
+}
+    
+    /**
+     * Batch tokenization: tokenize many strings in one FFI crossing,
+     * reusing a single locked tokenizer. Avoids per-sentence FFI overhead
+     * when processing a whole document/catalog. Uses the tokenizer's
+     * default mode.
+     */
+open func tokenizeMany(texts: [String])throws  -> [[MorphemeLite]]  {
+    return try  FfiConverterSequenceSequenceTypeMorphemeLite.lift(try rustCallWithError(FfiConverterTypeSudachiError_lift) {
+    uniffi_suji_sudachi_fn_method_sudachitokenizer_tokenize_many(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(texts),$0
+    )
+})
+}
+    
+    /**
+     * Same as `tokenize_many` but with an explicit split mode.
+     */
+open func tokenizeManyWithMode(texts: [String], mode: SplitMode)throws  -> [[MorphemeLite]]  {
+    return try  FfiConverterSequenceSequenceTypeMorphemeLite.lift(try rustCallWithError(FfiConverterTypeSudachiError_lift) {
+    uniffi_suji_sudachi_fn_method_sudachitokenizer_tokenize_many_with_mode(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(texts),
+        FfiConverterTypeSplitMode_lower(mode),$0
     )
 })
 }
@@ -845,6 +947,77 @@ public func FfiConverterTypeMorpheme_lift(_ buf: RustBuffer) throws -> Morpheme 
 #endif
 public func FfiConverterTypeMorpheme_lower(_ value: Morpheme) -> RustBuffer {
     return FfiConverterTypeMorpheme.lower(value)
+}
+
+
+/**
+ * Compact morpheme for the Swift display/merge pipeline. Carries only the
+ * consumed fields, with `part_of_speech` pre-joined (matching how the
+ * Swift side stores it) and a raw `pos_id` for cheap integer checks.
+ */
+public struct MorphemeLite: Equatable, Hashable {
+    public var surface: String
+    public var dictionaryForm: String
+    public var readingForm: String
+    public var partOfSpeech: String
+    public var posId: UInt16
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(surface: String, dictionaryForm: String, readingForm: String, partOfSpeech: String, posId: UInt16) {
+        self.surface = surface
+        self.dictionaryForm = dictionaryForm
+        self.readingForm = readingForm
+        self.partOfSpeech = partOfSpeech
+        self.posId = posId
+    }
+
+    
+
+    
+}
+
+#if compiler(>=6)
+extension MorphemeLite: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeMorphemeLite: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MorphemeLite {
+        return
+            try MorphemeLite(
+                surface: FfiConverterString.read(from: &buf), 
+                dictionaryForm: FfiConverterString.read(from: &buf), 
+                readingForm: FfiConverterString.read(from: &buf), 
+                partOfSpeech: FfiConverterString.read(from: &buf), 
+                posId: FfiConverterUInt16.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: MorphemeLite, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.surface, into: &buf)
+        FfiConverterString.write(value.dictionaryForm, into: &buf)
+        FfiConverterString.write(value.readingForm, into: &buf)
+        FfiConverterString.write(value.partOfSpeech, into: &buf)
+        FfiConverterUInt16.write(value.posId, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMorphemeLite_lift(_ buf: RustBuffer) throws -> MorphemeLite {
+    return try FfiConverterTypeMorphemeLite.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeMorphemeLite_lower(_ value: MorphemeLite) -> RustBuffer {
+    return FfiConverterTypeMorphemeLite.lower(value)
 }
 
 // Note that we don't yet support `indirect` for enums.
@@ -1093,6 +1266,56 @@ fileprivate struct FfiConverterSequenceTypeMorpheme: FfiConverterRustBuffer {
         return seq
     }
 }
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeMorphemeLite: FfiConverterRustBuffer {
+    typealias SwiftType = [MorphemeLite]
+
+    public static func write(_ value: [MorphemeLite], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeMorphemeLite.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [MorphemeLite] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [MorphemeLite]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeMorphemeLite.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceSequenceTypeMorphemeLite: FfiConverterRustBuffer {
+    typealias SwiftType = [[MorphemeLite]]
+
+    public static func write(_ value: [[MorphemeLite]], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterSequenceTypeMorphemeLite.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [[MorphemeLite]] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [[MorphemeLite]]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterSequenceTypeMorphemeLite.read(from: &buf))
+        }
+        return seq
+    }
+}
 public func katakanaToHiragana(s: String) -> String  {
     return try!  FfiConverterString.lift(try! rustCall() {
     uniffi_suji_sudachi_fn_func_katakana_to_hiragana(
@@ -1120,6 +1343,18 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize() != 17014) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize_lite() != 30578) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize_lite_with_mode() != 44202) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize_many() != 22857) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize_many_with_mode() != 11730) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_suji_sudachi_checksum_method_sudachitokenizer_tokenize_with_mode() != 53406) {

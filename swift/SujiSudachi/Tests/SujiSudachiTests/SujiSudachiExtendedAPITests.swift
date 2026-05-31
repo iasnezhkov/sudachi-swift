@@ -126,4 +126,69 @@ struct SujiSudachiExtendedAPITests {
         // Either populated or empty — both fine, just exercising the API path.
         _ = m?.synonymGroupIds
     }
+
+    // MARK: - Lean / batch API
+
+    @Test
+    func liteMatchesFullTokenize() throws {
+        if Self.skipUnavailable { return }
+        let dict = try Self.makeDict()
+        let tok = try SudachiTokenizer(dictionary: dict, mode: .c)
+
+        let text = "今日は勉強する"
+        let full = try tok.tokenize(text: text)
+        let lite = try tok.tokenizeLite(text: text)
+
+        // Same segmentation.
+        #expect(lite.map(\.surface) == full.map(\.surface))
+        #expect(lite.map(\.dictionaryForm) == full.map(\.dictionaryForm))
+        #expect(lite.map(\.readingForm) == full.map(\.readingForm))
+
+        // POS pre-joined on the Rust side equals the Swift-side join of the
+        // full morpheme's components.
+        for (l, f) in zip(lite, full) {
+            #expect(l.partOfSpeech == f.partOfSpeech.joined(separator: ","))
+        }
+
+        // pos_id is populated (non-OOV tokens have a real connection id).
+        let benkyou = lite.first { $0.surface == "勉強" }
+        #expect(benkyou != nil)
+        #expect(benkyou!.partOfSpeech.hasPrefix("名詞"))
+    }
+
+    @Test
+    func liteWithModeRespectsMode() throws {
+        if Self.skipUnavailable { return }
+        let dict = try Self.makeDict()
+        let tok = try SudachiTokenizer(dictionary: dict, mode: .c)
+
+        let liteA = try tok.tokenizeLiteWithMode(text: "国家公務員", mode: .a)
+        let liteC = try tok.tokenizeLiteWithMode(text: "国家公務員", mode: .c)
+        #expect(liteA.count >= liteC.count)
+
+        // Default mode unaffected after an explicit-mode call.
+        let again = try tok.tokenizeLite(text: "国家公務員")
+        #expect(again.map(\.surface) == liteC.map(\.surface))
+    }
+
+    @Test
+    func batchMatchesPerText() throws {
+        if Self.skipUnavailable { return }
+        let dict = try Self.makeDict()
+        let tok = try SudachiTokenizer(dictionary: dict, mode: .c)
+
+        let texts = ["今日は", "勉強する", "", "美味しいラーメン"]
+        let batch = try tok.tokenizeMany(texts: texts)
+        #expect(batch.count == texts.count)
+
+        for (i, text) in texts.enumerated() {
+            let single = try tok.tokenizeLite(text: text)
+            #expect(batch[i].map(\.surface) == single.map(\.surface))
+            #expect(batch[i].map(\.partOfSpeech) == single.map(\.partOfSpeech))
+            #expect(batch[i].map(\.posId) == single.map(\.posId))
+        }
+
+        // Empty input → empty token list, not an error.
+        #expect(batch[2].isEmpty)
+    }
 }
