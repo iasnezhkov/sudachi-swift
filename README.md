@@ -9,18 +9,10 @@ a binary `.xcframework` target.
 
 ## Why
 
-- **Modern UniDic dictionary** (latest 20260428) — covers vocabulary that
-  IPADic-2007 (the standard MeCab dict) misses entirely.
-- **Multi-granularity tokenization** (Mode A/B/C). `国家公務員` → one token
-  in C, `[国家, 公務員]` in B, `[国家, 公務, 員]` in A — built into the
-  architecture, not patched in.
-- **First-class iOS support upstream** — sudachi.rs has explicit
-  `#[cfg(target_os = "ios")]` guards in `plugin/loader.rs` that disable
-  dynamic-library loading (forbidden on iOS) and route plugins to bundled
-  static implementations. No fork required.
-- **Rendaku correct out of the box** — 毎日 → マイニチ, 三人 → サンニン
-  (after kata→hira conversion), via the dictionary itself, not runtime
-  override tables.
+Swift bindings so Sudachi runs natively in iOS and macOS apps — the same way
+[SudachiPy](https://github.com/WorksApplications/sudachi.rs/tree/develop/python)
+provides Python bindings. Tokenization happens on-device against the bundled
+dictionary; no server round-trip and no fork of sudachi.rs.
 
 ## Layout
 
