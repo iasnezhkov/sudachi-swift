@@ -14,12 +14,12 @@ name = "sudachi_swift"
 
 [dependencies]
 sudachi = { path = "../../third_party/sudachi.rs/sudachi" }
-uniffi = "0.31"
+uniffi = "0.32"
 thiserror = "2"
 parking_lot = "0.12"
 
 [build-dependencies]
-uniffi = { version = "0.31", features = ["build"] }
+uniffi = { version = "0.32", features = ["build"] }
 
 [[bin]]
 name = "uniffi-bindgen"
