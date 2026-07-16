@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: rustfmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Check Rust formatting
+        # The workspace excludes third_party/, so --all only checks our crate.
+        run: cargo fmt --all --check
+      - name: Cache cargo + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: clippy-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: clippy-${{ runner.os }}-
+      - name: Clippy
+        run: cargo clippy -p sudachi-swift-uniffi --all-targets -- -D warnings
+
+  build-and-test:
+    name: Build + test + coverage + swift-format
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Pin Xcode 16+ so the Swift 6 toolchain is present — required by the
+      # package's swift-tools-version 6.0 and by swift-format.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Add Apple Rust targets + llvm-tools
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim \
+            aarch64-apple-darwin
+          rustup component add llvm-tools-preview
+
+      - name: Cache cargo + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock', 'crates/**/*.rs') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      # Pin the dictionary version so the cache key is stable and builds are
+      # reproducible. The tests require the *core* edition at
+      # dictionaries/system_core.dic.
+      - name: Cache SudachiDict (core, 20260428)
+        id: dict-cache
+        uses: actions/cache@v4
+        with:
+          path: dictionaries
+          key: sudachidict-core-20260428
+
+      - name: Fetch dictionary
+        if: steps.dict-cache.outputs.cache-hit != 'true'
+        run: scripts/fetch-dictionary.sh core 20260428
+
+      - name: Build xcframework
+        run: scripts/build-ios.sh
+
+      - name: Swift lint (swift-format)
+        run: scripts/lint-swift.sh
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      # Runs the Rust unit + integration tests under coverage (gate: 100% lines
+      # on the wrapper crate) and the Swift tests under coverage (gate: 100%
+      # lines on Sudachi+Extensions.swift). Replaces a bare `swift test`.
+      - name: Coverage gates
+        run: scripts/coverage.sh

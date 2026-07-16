@@ -1,0 +1,150 @@
+namespace sudachi_swift {
+  /// Convert a Sudachi-style katakana reading to hiragana, e.g. for furigana
+  /// display. Only the katakana block U+30A1..U+30F6 is mapped; everything
+  /// else (ASCII, kanji, the prolonged sound mark ー) passes through.
+  string katakana_to_hiragana(string s);
+};
+
+/// Sudachi split granularity.
+///
+/// Sudachi can segment the same text at three granularities. For
+/// 国家公務員 ("national civil servant"): A → 国家 / 公務 / 員,
+/// B → 国家 / 公務員, C → 国家公務員.
+enum SplitMode {
+  /// Shortest units (UniDic-like) — best for search indexing.
+  "A",
+  /// Middle units — a compromise between A and C.
+  "B",
+  /// Named-entity-like longest units — best for display.
+  "C",
+};
+
+/// Errors thrown by dictionary loading and tokenization.
+///
+/// Note: case names surface in Swift exactly as written here
+/// (`.DictionaryNotFound`, …) — UniFFI does not lowercase error enum cases.
+[Error]
+enum SudachiError {
+  /// A system or user dictionary file does not exist at the given path.
+  "DictionaryNotFound",
+  /// A dictionary file exists but cannot be loaded (bad header/format).
+  "DictionaryInvalid",
+  /// The configuration or resource directory is invalid.
+  "ConfigInvalid",
+  /// Tokenization itself failed (e.g. input longer than ~49 KB).
+  "Tokenization",
+};
+
+/// A loaded Sudachi dictionary.
+///
+/// Loading `mmap`s the `.dic` file, so construction is fast (~10 ms) and
+/// memory is shared between tokenizers. Create it once and pass it to as many
+/// `SudachiTokenizer`s as you need — the recommended pattern for parallelism
+/// is one dictionary, one tokenizer per worker.
+interface SudachiDictionary {
+  /// Load a system dictionary (`system_*.dic`), optional user dictionaries,
+  /// and the resource directory containing `char.def` / `unk.def`.
+  ///
+  /// All paths are plain filesystem paths. Throws `DictionaryNotFound` /
+  /// `ConfigInvalid` naming the offending path if anything is missing.
+  [Throws=SudachiError]
+  constructor(
+    string system_dict_path,
+    sequence<string> user_dict_paths,
+    string resource_dir
+  );
+};
+
+/// A tokenizer bound to a dictionary and a default `SplitMode`.
+///
+/// Thread-safe: calls are serialized by an internal lock, so a single
+/// instance can be shared across threads/actors. For CPU parallelism create
+/// several tokenizers over the same `SudachiDictionary`.
+interface SudachiTokenizer {
+  /// Create a tokenizer over `dictionary` with a default split `mode`.
+  [Throws=SudachiError]
+  constructor(SudachiDictionary dictionary, SplitMode mode);
+
+  /// Tokenize `text` into full `Morpheme`s using the default split mode.
+  [Throws=SudachiError]
+  sequence<Morpheme> tokenize(string text);
+
+  /// Re-tokenize a substring (typically a single morpheme's surface) with
+  /// a different split mode. Useful for showing Mode A breakdown of a
+  /// Mode C compound on tap, without rerunning the full pipeline.
+  [Throws=SudachiError]
+  sequence<Morpheme> tokenize_with_mode(string text, SplitMode mode);
+
+  /// Lean variant of `tokenize` returning only the fields the Swift
+  /// merge/display pipeline actually consumes, with `part_of_speech`
+  /// pre-joined into a single comma string plus an integer `pos_id`.
+  /// Cuts per-morpheme allocations and FFI marshalling roughly in half
+  /// versus the full `Morpheme`. Prefer this for hot paths (reader,
+  /// catalog).
+  [Throws=SudachiError]
+  sequence<MorphemeLite> tokenize_lite(string text);
+
+  /// Same as `tokenize_lite` but with an explicit split mode.
+  [Throws=SudachiError]
+  sequence<MorphemeLite> tokenize_lite_with_mode(string text, SplitMode mode);
+
+  /// Batch tokenization: tokenize many strings in one FFI crossing,
+  /// reusing a single locked tokenizer. Avoids per-sentence FFI overhead
+  /// when processing a whole document/catalog. Uses the tokenizer's
+  /// default mode. (Batch is lite-only by design — needing full
+  /// `Morpheme`s in bulk is rare; loop `tokenize` for that.)
+  [Throws=SudachiError]
+  sequence<sequence<MorphemeLite>> tokenize_many(sequence<string> texts);
+
+  /// Same as `tokenize_many` but with an explicit split mode.
+  [Throws=SudachiError]
+  sequence<sequence<MorphemeLite>> tokenize_many_with_mode(
+    sequence<string> texts,
+    SplitMode mode
+  );
+};
+
+/// One analyzed unit of text with its full set of attributes.
+///
+/// `begin`/`end` are **codepoint** (Unicode scalar) offsets into the
+/// tokenized text — resolve them via `Morpheme.range(in:)` (or against
+/// `text.unicodeScalars`), never as byte or `Character` offsets.
+dictionary Morpheme {
+  /// The text of this morpheme exactly as it appears in the input.
+  string surface;
+  /// Katakana reading (e.g. テンキ for 天気). Convert with
+  /// `katakana_to_hiragana` for furigana.
+  string reading_form;
+  /// Dictionary (lemma) form, e.g. 行く for 行っ.
+  string dictionary_form;
+  /// Normalized form unifying spelling variants, e.g. 付く for 附く.
+  string normalized_form;
+  /// Part-of-speech hierarchy, most-general first (品詞, 6 levels).
+  sequence<string> part_of_speech;
+  /// Sudachi synonym group ids this morpheme belongs to (may be empty).
+  sequence<u32> synonym_group_ids;
+  /// True if the morpheme is out-of-vocabulary (not found in the dictionary).
+  boolean is_oov;
+  /// Raw dictionary word id (stable within one dictionary build).
+  u32 word_id;
+  /// Start offset in codepoints (Unicode scalars) within the input text.
+  u32 begin;
+  /// End offset in codepoints (exclusive).
+  u32 end;
+};
+
+/// Compact morpheme for the Swift display/merge pipeline. Carries only the
+/// consumed fields, with `part_of_speech` pre-joined (matching how the
+/// Swift side stores it) and a raw `pos_id` for cheap integer checks.
+dictionary MorphemeLite {
+  /// The text of this morpheme exactly as it appears in the input.
+  string surface;
+  /// Dictionary (lemma) form.
+  string dictionary_form;
+  /// Katakana reading.
+  string reading_form;
+  /// Part-of-speech hierarchy joined with commas, e.g. 名詞,普通名詞,一般,*,*,*.
+  string part_of_speech;
+  /// Raw part-of-speech id for cheap integer comparisons.
+  u16 pos_id;
+};
