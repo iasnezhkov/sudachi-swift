@@ -1,0 +1,31 @@
+[package]
+name = "sudachi-swift-uniffi"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+name = "sudachi_swift"
+
+[dependencies]
+sudachi = { path = "../../third_party/sudachi.rs/sudachi" }
+uniffi = "0.31"
+thiserror = "2"
+parking_lot = "0.12"
+
+[build-dependencies]
+uniffi = { version = "0.31", features = ["build"] }
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[features]
+default = []
+cli = ["uniffi/cli"]

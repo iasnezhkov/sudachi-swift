@@ -1,0 +1,78 @@
+Sudachi (sudachi-swift)
+Copyright 2026 Ilia Snezhkov
+
+This product is licensed under the Apache License, Version 2.0 (the
+"License"); you may not use it except in compliance with the License. A copy
+of the License is provided in the LICENSE file, or at
+http://www.apache.org/licenses/LICENSE-2.0.
+
+================================================================================
+What this package contains
+================================================================================
+
+This package is a Swift binding to sudachi.rs and does NOT redistribute any
+SudachiDict dictionary data. The compiled binary (Sudachi.xcframework)
+statically links:
+
+  sudachi.rs — https://github.com/WorksApplications/sudachi.rs
+  Copyright (c) Works Applications Co., Ltd.
+  Licensed under the Apache License, Version 2.0.
+
+The default runtime configuration embedded in the binary
+(crates/sudachi-swift-uniffi/src/default_config.json) is derived from
+third_party/sudachi.rs/resources/sudachi.json (Apache-2.0). The auxiliary
+resource files char.def and unk.def used at runtime also originate from
+sudachi.rs (Apache-2.0).
+
+Bindings are generated with Mozilla UniFFI (https://github.com/mozilla/uniffi-rs,
+Mozilla Public License 2.0), which is a build-time tool and is not linked into
+the distributed binary.
+
+================================================================================
+Downstream obligation: SudachiDict dictionary data
+================================================================================
+
+Sudachi requires a SudachiDict system dictionary (system_*.dic) at runtime.
+This package does not ship it — it is downloaded separately (see
+scripts/fetch-dictionary.sh) and bundled by the consuming application.
+
+IF YOU REDISTRIBUTE A SUDACHIDICT .dic FILE (for example, by embedding it in
+your app bundle), you must retain the attributions required by SudachiDict's
+LEGAL notice: https://github.com/WorksApplications/SudachiDict/blob/develop/LEGAL
+
+SudachiDict is licensed under the Apache License, Version 2.0, and includes
+data from third parties whose notices must be preserved on redistribution,
+including but not limited to:
+
+  UniDic (https://unidic.ninjal.ac.jp/)
+  Copyright (c) 2011-2013, The UniDic Consortium. All rights reserved.
+  Licensed under the BSD 3-Clause License:
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+     * Redistributions of source code must retain the above copyright notice,
+       this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+     * Neither the name of the UniDic Consortium nor the names of its
+       contributors may be used to endorse or promote products derived from
+       this software without specific prior written permission.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED. See the SudachiDict
+    LEGAL file for the full disclaimer.
+
+  NEologd (https://github.com/neologd/mecab-unidic-neologd)
+  Copyright (C) 2015-2019 Toshinori Sato (@overlast), which itself incorporates
+  data from Hatena Co., Ltd., Japan Post Co., Ltd., and other sources listed in
+  the SudachiDict LEGAL file.
+
+For the authoritative and complete terms, always refer to the LICENSE-2.0.txt
+and LEGAL files shipped inside the SudachiDict release you use.
+
+================================================================================
+Unofficial project
+================================================================================
+
+This is an independent, community-maintained binding. It is not affiliated
+with, endorsed by, or supported by Works Applications Co., Ltd.

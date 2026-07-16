@@ -1,0 +1,98 @@
+name: Release
+
+# Manual release: builds the xcframework, computes its checksum, rewrites
+# Package.swift + Cargo.toml to the new version, commits, tags, and publishes a
+# GitHub Release with the xcframework archive attached. Doing the version bump
+# *before* tagging keeps the tag's Package.swift checksum consistent with the
+# uploaded artifact (avoids the checksum/tag chicken-and-egg).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, without leading v (e.g. 0.3.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Validate version
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z]+)*$ ]]; then
+            echo "::error::version '${{ inputs.version }}' is not valid semver"
+            exit 1
+          fi
+
+      - name: Add Apple Rust targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim \
+            aarch64-apple-darwin
+
+      - name: Build xcframework
+        run: scripts/build-ios.sh
+
+      - name: Archive xcframework
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/Sudachi.xcframework build/Sudachi.xcframework.zip
+
+      - name: Compute checksum
+        id: checksum
+        run: |
+          CS=$(swift package compute-checksum build/Sudachi.xcframework.zip)
+          echo "value=$CS" >> "$GITHUB_OUTPUT"
+          echo "Checksum: $CS"
+
+      - name: Rewrite Package.swift and Cargo.toml
+        env:
+          VERSION: ${{ inputs.version }}
+          CHECKSUM: ${{ steps.checksum.outputs.value }}
+        run: |
+          sed -i '' -E \
+            "s#/releases/download/v[0-9][^/]*/#/releases/download/v${VERSION}/#" \
+            Package.swift
+          sed -i '' -E \
+            "s#checksum: \"[a-f0-9]{64}\"#checksum: \"${CHECKSUM}\"#" \
+            Package.swift
+          sed -i '' -E "s/^version = \".*\"/version = \"${VERSION}\"/" Cargo.toml
+          # Keep Cargo.lock's version stamp for the workspace crate in sync.
+          cargo update --workspace --offline || cargo update --workspace
+
+          # Verify every rewrite landed — fail loudly rather than tag a
+          # release whose manifest still points at the previous version.
+          grep -q "/releases/download/v${VERSION}/" Package.swift
+          grep -q "checksum: \"${CHECKSUM}\"" Package.swift
+          grep -q "^version = \"${VERSION}\"" Cargo.toml
+          echo "--- Package.swift ---"; grep -E 'url:|checksum:' Package.swift
+
+      - name: Commit, tag, and push
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Package.swift Cargo.toml Cargo.lock
+          git commit -m "Release v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "v${VERSION}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v${VERSION}" \
+            build/Sudachi.xcframework.zip \
+            --title "v${VERSION}" \
+            --generate-notes

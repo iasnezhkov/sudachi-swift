@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned versions fresh.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies]
+
+  # Rust wrapper dependencies (uniffi, thiserror, parking_lot). The sudachi.rs
+  # submodule is pinned deliberately and is not managed by Dependabot.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies]
