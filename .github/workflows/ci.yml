@@ -22,7 +22,7 @@ jobs:
         # The workspace excludes third_party/, so --all only checks our crate.
         run: cargo fmt --all --check
       - name: Cache cargo + target
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -55,7 +55,7 @@ jobs:
           rustup component add llvm-tools-preview
 
       - name: Cache cargo + target
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -69,7 +69,7 @@ jobs:
       # dictionaries/system_core.dic.
       - name: Cache SudachiDict (core, 20260428)
         id: dict-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: dictionaries
           key: sudachidict-core-20260428
