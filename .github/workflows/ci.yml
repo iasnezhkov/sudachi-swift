@@ -19,8 +19,10 @@ jobs:
         with:
           submodules: recursive
       - name: Check Rust formatting
-        # The workspace excludes third_party/, so --all only checks our crate.
-        run: cargo fmt --all --check
+        # Scope to our crate. `--all` descends into the third_party/ submodule's
+        # own cargo workspace (e.g. sudachi.rs' `python` crate), whose upstream
+        # formatting we must not gate our CI on — the develop-v0.7 bump surfaced this.
+        run: cargo fmt -p sudachi-swift-uniffi --check
       - name: Cache cargo + target
         uses: actions/cache@v6
         with:
