@@ -451,6 +451,22 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterInt32: FfiConverterPrimitive {
+    typealias FfiType = Int32
+    typealias SwiftType = Int32
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int32 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int32, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterBool : FfiConverter {
     typealias FfiType = Int8
     typealias SwiftType = Bool
@@ -944,7 +960,7 @@ public struct Morpheme: Equatable, Hashable {
     /**
      * Sudachi synonym group ids this morpheme belongs to (may be empty).
      */
-    public var synonymGroupIds: [UInt32]
+    public var synonymGroupIds: [Int32]
     /**
      * True if the morpheme is out-of-vocabulary (not found in the dictionary).
      */
@@ -983,7 +999,7 @@ public struct Morpheme: Equatable, Hashable {
          */partOfSpeech: [String], 
         /**
          * Sudachi synonym group ids this morpheme belongs to (may be empty).
-         */synonymGroupIds: [UInt32], 
+         */synonymGroupIds: [Int32], 
         /**
          * True if the morpheme is out-of-vocabulary (not found in the dictionary).
          */isOov: Bool, 
@@ -1029,7 +1045,7 @@ public struct FfiConverterTypeMorpheme: FfiConverterRustBuffer {
                 dictionaryForm: FfiConverterString.read(from: &buf), 
                 normalizedForm: FfiConverterString.read(from: &buf), 
                 partOfSpeech: FfiConverterSequenceString.read(from: &buf), 
-                synonymGroupIds: FfiConverterSequenceUInt32.read(from: &buf), 
+                synonymGroupIds: FfiConverterSequenceInt32.read(from: &buf), 
                 isOov: FfiConverterBool.read(from: &buf), 
                 wordId: FfiConverterUInt32.read(from: &buf), 
                 begin: FfiConverterUInt32.read(from: &buf), 
@@ -1043,7 +1059,7 @@ public struct FfiConverterTypeMorpheme: FfiConverterRustBuffer {
         FfiConverterString.write(value.dictionaryForm, into: &buf)
         FfiConverterString.write(value.normalizedForm, into: &buf)
         FfiConverterSequenceString.write(value.partOfSpeech, into: &buf)
-        FfiConverterSequenceUInt32.write(value.synonymGroupIds, into: &buf)
+        FfiConverterSequenceInt32.write(value.synonymGroupIds, into: &buf)
         FfiConverterBool.write(value.isOov, into: &buf)
         FfiConverterUInt32.write(value.wordId, into: &buf)
         FfiConverterUInt32.write(value.begin, into: &buf)
@@ -1376,23 +1392,23 @@ public func FfiConverterTypeSudachiError_lower(_ value: SudachiError) -> RustBuf
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
-fileprivate struct FfiConverterSequenceUInt32: FfiConverterRustBuffer {
-    typealias SwiftType = [UInt32]
+fileprivate struct FfiConverterSequenceInt32: FfiConverterRustBuffer {
+    typealias SwiftType = [Int32]
 
-    public static func write(_ value: [UInt32], into buf: inout [UInt8]) {
+    public static func write(_ value: [Int32], into buf: inout [UInt8]) {
         let len = Int32(value.count)
         writeInt(&buf, len)
         for item in value {
-            FfiConverterUInt32.write(item, into: &buf)
+            FfiConverterInt32.write(item, into: &buf)
         }
     }
 
-    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [UInt32] {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Int32] {
         let len: Int32 = try readInt(&buf)
-        var seq = [UInt32]()
+        var seq = [Int32]()
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
-            seq.append(try FfiConverterUInt32.read(from: &buf))
+            seq.append(try FfiConverterInt32.read(from: &buf))
         }
         return seq
     }
