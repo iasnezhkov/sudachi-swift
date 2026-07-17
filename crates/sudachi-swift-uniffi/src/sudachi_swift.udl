@@ -122,7 +122,7 @@ dictionary Morpheme {
   /// Part-of-speech hierarchy, most-general first (品詞, 6 levels).
   sequence<string> part_of_speech;
   /// Sudachi synonym group ids this morpheme belongs to (may be empty).
-  sequence<u32> synonym_group_ids;
+  sequence<i32> synonym_group_ids;
   /// True if the morpheme is out-of-vocabulary (not found in the dictionary).
   boolean is_oov;
   /// Raw dictionary word id (stable within one dictionary build).

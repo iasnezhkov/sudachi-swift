@@ -19,7 +19,7 @@ use thiserror::Error;
 use sudachi::analysis::mlist::MorphemeList;
 use sudachi::analysis::stateful_tokenizer::StatefulTokenizer;
 use sudachi::analysis::Mode as SudachiMode;
-use sudachi::config::ConfigBuilder;
+use sudachi::config::{ConfigBuilder, PathResolver};
 use sudachi::dic::dictionary::JapaneseDictionary;
 
 uniffi::include_scaffolding!("sudachi_swift");
@@ -116,7 +116,7 @@ pub struct Morpheme {
     pub dictionary_form: String,
     pub normalized_form: String,
     pub part_of_speech: Vec<String>,
-    pub synonym_group_ids: Vec<u32>,
+    pub synonym_group_ids: Vec<i32>,
     pub is_oov: bool,
     pub word_id: u32,
     pub begin: u32,
@@ -152,9 +152,13 @@ impl SudachiDictionary {
         // naming the offending path, before we ever touch the loader.
         Self::validate_paths(&system_dict_path, &user_dict_paths, &resource_dir)?;
 
+        // sudachi.rs 0.7 (#346) replaced `ConfigBuilder::resource_path` with a
+        // `PathResolver`: resource files (`char.def`, `unk.def`, `rewrite.def`, …)
+        // are resolved against the resolver's roots. Root it at the caller's
+        // resource dir to preserve the previous single-directory behavior.
         let builder = Self::config_builder(DEFAULT_CONFIG_JSON)?
             .system_dict(PathBuf::from(&system_dict_path))
-            .resource_path(PathBuf::from(&resource_dir));
+            .with_resolver(PathResolver::from_path(PathBuf::from(&resource_dir)));
         let builder = Self::apply_user_dicts(builder, &user_dict_paths);
 
         let config = builder.build();
