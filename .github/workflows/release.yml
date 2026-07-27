@@ -23,8 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: recursive
           fetch-depth: 0
+          # Push the version-bump commit + tag over SSH using a repo deploy key.
+          # That key is on the main ruleset's bypass list, so the push lands on
+          # protected main without granting humans a bypass. Store the private
+          # key as the RELEASE_DEPLOY_KEY secret; add its public half as a
+          # write-enabled deploy key.
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+
+      # sudachi.rs is an on-demand checkout pinned by third_party/sudachi.rs.pin,
+      # not a submodule (see scripts/fetch-sudachi-rs.sh). build-ios.sh fetches it
+      # too; doing it here keeps the failure mode obvious in the log.
+      - name: Fetch sudachi.rs (pinned)
+        run: scripts/fetch-sudachi-rs.sh
 
       - name: Validate version
         run: |
@@ -79,8 +90,8 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "Ilia Snezhkov"
+          git config user.email "iasnezhkov@gmail.com"
           git add Package.swift Cargo.toml Cargo.lock
           git commit -m "Release v${VERSION}"
           git tag "v${VERSION}"

@@ -10,6 +10,13 @@ build/
 # large to track in git — 40-700 MB depending on edition)
 dictionaries/
 
+# sudachi.rs sources, checked out on demand by scripts/fetch-sudachi-rs.sh at
+# the commit in third_party/sudachi.rs.pin (which IS tracked). Deliberately not
+# a submodule: SwiftPM initialises submodules recursively on every consumer
+# checkout, so a submodule here would make every consumer clone all of
+# sudachi.rs before compiling anything.
+/third_party/sudachi.rs/
+
 # Swift Package Manager scratch
 .swiftpm/
 .build/
@@ -29,3 +36,7 @@ Package.resolved
 # (docs/ARCHITECTURE.md IS public and should be committed.)
 docs/upstream-watch.md
 docs/RELEASE-PLAN.md
+docs/upstream-tickets-0.7.md
+
+# Local, machine-specific tool config — never publish.
+.claude/settings.local.json

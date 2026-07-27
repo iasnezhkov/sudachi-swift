@@ -7,8 +7,9 @@ updates:
       interval: weekly
     labels: [dependencies]
 
-  # Rust wrapper dependencies (thiserror, parking_lot). The sudachi.rs
-  # submodule is pinned deliberately and is not managed by Dependabot.
+  # Rust wrapper dependencies (thiserror, parking_lot). sudachi.rs itself is
+  # pinned deliberately in third_party/sudachi.rs.pin and is not managed by
+  # Dependabot.
   - package-ecosystem: cargo
     directory: /
     schedule:

@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-27
+
+### Changed
+- **sudachi.rs is no longer a git submodule.** SwiftPM initialises submodules
+  recursively on every fresh package checkout, so consumers of this package were
+  cloning the entire `sudachi.rs` history — hundreds of megabytes of sources
+  nothing in the Swift package graph reads — before compiling a single file, and
+  on cold CI that could stall a build for tens of minutes. The Swift package is
+  unaffected in every other way: same products, same API, same prebuilt
+  `.xcframework`. Consumers only need to update to this version.
+- Building from source now fetches the pinned upstream sources on demand:
+  `third_party/sudachi.rs.pin` holds the commit SHA and
+  `scripts/fetch-sudachi-rs.sh` checks it out (shallow) into the gitignored
+  `third_party/sudachi.rs/`. `scripts/build-ios.sh` and
+  `scripts/fetch-dictionary.sh` call it automatically; `git clone
+  --recurse-submodules` is no longer needed.
+
 ## [0.1.0] - 2026-07-16
 
 First public release.
@@ -32,4 +49,5 @@ First public release.
   hand-written layers; manual release workflow that rewrites the binary
   target URL/checksum atomically with the tag.
 
+[0.1.1]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.1
 [0.1.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.0

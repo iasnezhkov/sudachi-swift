@@ -16,8 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
+
+      # sudachi.rs is an on-demand checkout pinned by third_party/sudachi.rs.pin,
+      # not a submodule (see scripts/fetch-sudachi-rs.sh). The wrapper crate's
+      # path dependency needs it before any cargo invocation.
+      - name: Fetch sudachi.rs (pinned)
+        run: scripts/fetch-sudachi-rs.sh
+
       - name: Check Rust formatting
         # The workspace excludes third_party/, so --all only checks our crate.
         run: cargo fmt --all --check
@@ -38,8 +43,11 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
+
+      # Needed before the dictionary fetch (it copies char.def/unk.def out of
+      # sudachi.rs' resources/) and before any cargo invocation.
+      - name: Fetch sudachi.rs (pinned)
+        run: scripts/fetch-sudachi-rs.sh
 
       # Pin Xcode 16+ so the Swift 6 toolchain is present — required by the
       # package's swift-tools-version 6.0 and by swift-format.

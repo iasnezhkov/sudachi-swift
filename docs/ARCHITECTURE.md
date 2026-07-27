@@ -9,8 +9,9 @@ read once by anyone evaluating, using, or maintaining the binding.
 A thin Swift binding to [`sudachi.rs`](https://github.com/WorksApplications/sudachi.rs)
 (the Rust implementation of the Sudachi Japanese morphological analyzer),
 generated with [UniFFI](https://github.com/mozilla/uniffi-rs). We do **not** fork
-sudachi.rs — it is a pinned git submodule (`third_party/sudachi.rs`) and does the
-actual analysis. Our code is a small wrapper crate plus generated Swift.
+sudachi.rs — it is pinned to an upstream commit (`third_party/sudachi.rs.pin`,
+checked out on demand by `scripts/fetch-sudachi-rs.sh`) and does the actual
+analysis. Our code is a small wrapper crate plus generated Swift.
 
 ```
 Swift app
@@ -22,7 +23,7 @@ swift/Sudachi/…/Sudachi.swift   ← UniFFI-generated Swift (do not edit)
 crates/sudachi-swift-uniffi/src/lib.rs   ← OUR wrapper (one small file)
    │  Rust API
    ▼
-third_party/sudachi.rs (submodule)      ← the real tokenizer + dictionary loader
+third_party/sudachi.rs (pinned checkout) ← the real tokenizer + dictionary loader
 ```
 
 Three source-of-truth files define the surface:

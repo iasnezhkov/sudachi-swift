@@ -1,0 +1,9 @@
+# sudachi.rs source pin — read by scripts/fetch-sudachi-rs.sh.
+#
+# One full 40-character commit SHA; the first non-comment line wins. Bump it
+# together with Cargo.lock and the CHANGELOG (see CONTRIBUTING.md, "Upstream
+# awareness"). This replaces the old git submodule, which SwiftPM cloned into
+# every consumer's checkout for no reason.
+#
+# 90fd6068 = v0.6.11
+90fd6068c80c2fc3b63e0dbab0e341475bad4d8f

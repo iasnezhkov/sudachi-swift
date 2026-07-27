@@ -6,7 +6,8 @@
 #   build/generated/sudachi_swiftFFI.{h,modulemap}  — C header + modulemap
 #   swift/Sudachi/Sources/Sudachi/Sudachi.swift — Swift bindings
 #
-# Requires: rustup with the Apple targets below installed; Xcode CLT.
+# Requires: rustup with the Apple targets below installed; Xcode CLT. The
+# pinned sudachi.rs sources are fetched automatically if missing.
 
 set -euo pipefail
 
@@ -22,6 +23,11 @@ LIB_NAME="sudachi_swift"
 STATIC_LIB="lib${LIB_NAME}.a"
 
 mkdir -p "$BUILD"
+
+# The wrapper crate has a path dependency on third_party/sudachi.rs, which is
+# fetched on demand at a pinned commit rather than vendored as a submodule
+# (see scripts/fetch-sudachi-rs.sh). No-op once it is present at the pin.
+"$ROOT/scripts/fetch-sudachi-rs.sh"
 
 # Apple Silicon only: arm64 device, arm64 simulator, arm64 macOS. The x86_64
 # (Intel) simulator/macOS slices are intentionally dropped — it roughly halves
