@@ -82,7 +82,7 @@ system dictionary (`system_*.dic`) plus two small resource files
 ```bash
 scripts/fetch-dictionary.sh                # core edition (≈70 MB download)
 scripts/fetch-dictionary.sh small          # or: small / full
-scripts/fetch-dictionary.sh core 20260428  # pin a specific version
+scripts/fetch-dictionary.sh core 20260723  # pin a specific version
 ```
 
 This downloads into `dictionaries/` (gitignored) together with `char.def`,
