@@ -13,7 +13,7 @@
 #   scripts/fetch-dictionary.sh                    # core (default)
 #   scripts/fetch-dictionary.sh small              # small (~40 MB)
 #   scripts/fetch-dictionary.sh full               # full (~700 MB)
-#   scripts/fetch-dictionary.sh core 20260428      # pin a specific version
+#   scripts/fetch-dictionary.sh core 20260723      # pin a specific version
 
 set -euo pipefail
 
@@ -54,7 +54,7 @@ else
   unzip -q "$ZIP" -d "$DICT_DIR"
 
   # The zip extracts to a dated directory like
-  # sudachi-dictionary-20260428/system_<edition>.dic, not the literal
+  # sudachi-dictionary-20260723/system_<edition>.dic, not the literal
   # ${VERSION} we passed. Find what actually came out.
   ACTUAL_DIR="$(find "$DICT_DIR" -maxdepth 1 -type d -name 'sudachi-dictionary-*' | head -1)"
   if [ -z "$ACTUAL_DIR" ]; then

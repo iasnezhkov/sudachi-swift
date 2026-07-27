@@ -75,16 +75,16 @@ jobs:
       # Pin the dictionary version so the cache key is stable and builds are
       # reproducible. The tests require the *core* edition at
       # dictionaries/system_core.dic.
-      - name: Cache SudachiDict (core, 20260428)
+      - name: Cache SudachiDict (core, 20260723)
         id: dict-cache
         uses: actions/cache@v6
         with:
           path: dictionaries
-          key: sudachidict-core-20260428
+          key: sudachidict-core-20260723
 
       - name: Fetch dictionary
         if: steps.dict-cache.outputs.cache-hit != 'true'
-        run: scripts/fetch-dictionary.sh core 20260428
+        run: scripts/fetch-dictionary.sh core 20260723
 
       - name: Build xcframework
         run: scripts/build-ios.sh
