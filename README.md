@@ -182,8 +182,9 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin
 
-# 2. Clone with the sudachi.rs submodule
-git clone --recurse-submodules https://github.com/iasnezhkov/sudachi-swift.git
+# 2. Clone (no submodules — the pinned sudachi.rs sources are fetched on demand
+#    by the scripts below, into third_party/sudachi.rs)
+git clone https://github.com/iasnezhkov/sudachi-swift.git
 cd sudachi-swift
 
 # 3. Dictionary (for tests) + build
@@ -203,8 +204,10 @@ Repository layout:
 ├── swift/Sudachi/                    SPM package (dev manifest + tests)
 │   ├── Sources/Sudachi/              Generated bindings + hand-written helpers
 │   └── Tests/SudachiTests/
-├── scripts/                          build-ios / fetch-dictionary / lint / coverage
-├── third_party/sudachi.rs/           Submodule, pinned to v0.6.11
+├── scripts/                          build-ios / fetch-sudachi-rs / fetch-dictionary / lint / coverage
+├── third_party/sudachi.rs.pin        Upstream commit pin (v0.6.11); the sources
+│                                     are fetched into third_party/sudachi.rs/
+│                                     and are not tracked here
 └── docs/ARCHITECTURE.md              Design: what we add on top of sudachi.rs
 ```
 

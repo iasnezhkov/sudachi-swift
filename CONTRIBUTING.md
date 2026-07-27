@@ -29,9 +29,9 @@ one of three layers:
 ## Local setup
 
 ```bash
-git clone --recurse-submodules https://github.com/iasnezhkov/sudachi-swift.git
+git clone https://github.com/iasnezhkov/sudachi-swift.git
 cd sudachi-swift
-git submodule update --init --recursive     # pulls third_party/sudachi.rs
+scripts/fetch-sudachi-rs.sh                 # pinned sudachi.rs sources (shallow)
 scripts/fetch-dictionary.sh core            # ~70 MB download, needed by tests
 scripts/build-ios.sh                        # builds build/Sudachi.xcframework
 ```
@@ -114,7 +114,14 @@ custom and why.
 
 ## Upstream awareness
 
-This binding pins `third_party/sudachi.rs` to a specific release. Bumping it can
-require code changes in the wrapper (sudachi.rs 0.7 in particular is a
-format/loader rewrite). If your change depends on newer sudachi.rs behavior,
-note that in the PR.
+This binding pins sudachi.rs to a specific upstream commit in
+`third_party/sudachi.rs.pin`; `scripts/fetch-sudachi-rs.sh` checks that commit
+out (shallow) into `third_party/sudachi.rs/`, which is gitignored. It is
+deliberately **not** a git submodule: SwiftPM initialises submodules recursively
+on every package checkout, so a submodule here would make every consumer of the
+Swift package clone the whole sudachi.rs history before compiling anything.
+
+To bump upstream, edit the SHA in the pin file, re-run the script, and commit
+the resulting `Cargo.lock` change. Bumping can require code changes in the
+wrapper (sudachi.rs 0.7 in particular is a format/loader rewrite). If your
+change depends on newer sudachi.rs behavior, note that in the PR.

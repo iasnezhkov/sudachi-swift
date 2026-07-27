@@ -75,8 +75,12 @@ else
 fi
 
 # char.def + unk.def live in the sudachi.rs repo (Apache-2.0 with the
-# same redistribution license as the dictionary itself).
+# same redistribution license as the dictionary itself). Those sources are
+# fetched on demand at a pinned commit, so pull them if this is a fresh clone.
 RESOURCES_SRC="$ROOT/third_party/sudachi.rs/resources"
+if [ ! -d "$RESOURCES_SRC" ]; then
+  "$ROOT/scripts/fetch-sudachi-rs.sh"
+fi
 for f in char.def unk.def; do
   if [ ! -f "$DICT_DIR/$f" ] || [ "$RESOURCES_SRC/$f" -nt "$DICT_DIR/$f" ]; then
     cp "$RESOURCES_SRC/$f" "$DICT_DIR/$f"
