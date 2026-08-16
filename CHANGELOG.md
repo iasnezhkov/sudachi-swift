@@ -4,6 +4,38 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Preparation for sudachi.rs 0.7. Not releasable yet: upstream has not tagged 0.7,
+so the pin points at a branch commit and the v1 dictionaries this needs are
+published but not yet announced.
+
+### Changed
+- **Breaking (Swift API):** `Morpheme.synonymGroupIds` is now `[Int32]`, was
+  `[UInt32]`. Upstream changed the lexicon accessor to return signed ids
+  (sudachi.rs #357, which also renamed the dictionary field to the plural
+  `synonym-group-ids`).
+- Pinned sudachi.rs to `1e87493c` (`develop-v0.7`, 2026-06-29). The 0.7 config
+  rework (upstream #346) removed `ConfigBuilder::resource_path`, so the wrapper
+  now installs a `PathResolver` rooted at the caller's resource directory —
+  same single-directory behaviour as before.
+- **The dictionary must now be in the "v1" binary format**: 0.7 rejects the v0
+  format outright. `scripts/fetch-dictionary.sh` fetches v1 by default
+  (`SUDACHI_DICT_FORMAT=v0` restores the legacy path) and replaces an existing
+  `.dic` that is in the wrong format instead of skipping the download.
+- `scripts/fetch-dictionary.sh` also stages `rewrite.def` alongside `char.def`
+  and `unk.def`: 0.7's `DefaultInputTextPlugin` resolves it through the config
+  path resolver, and a resource directory without it fails the dictionary load.
+
+### Fixed
+- `scripts/fetch-dictionary.sh` refreshes the copied `.def` resources by
+  comparing contents rather than modification times. A checkout can produce
+  files older than the copies already in `dictionaries/`, in which case the
+  stale copies survived every re-run.
+- CI's dictionary cache key now includes the dictionary format and the
+  sudachi.rs pin, so bumping the pin can no longer leave `.def` files from an
+  older upstream commit behind a cache hit.
+
 ## [0.2.0] - 2026-09-19
 
 ### Changed
@@ -86,6 +118,7 @@ First public release.
   hand-written layers; manual release workflow that rewrites the binary
   target URL/checksum atomically with the tag.
 
+[Unreleased]: https://github.com/iasnezhkov/sudachi-swift/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.2.0
 [0.1.1]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.1
 [0.1.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.0
