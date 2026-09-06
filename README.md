@@ -16,7 +16,8 @@ gives Sudachi to Python, this package gives it to Swift.
 - **Targets:** iOS / iPadOS 17+, macOS 14+ (Apple Silicon; see
   [Building from source](#building-from-source) for Intel).
 - **Distribution:** Swift Package Manager, with the Rust core shipped as a
-  prebuilt binary `.xcframework`.
+  prebuilt binary `.xcframework` — a dynamic framework per slice, each with its
+  `.dSYM` so crash reports symbolicate.
 
 ## Installation
 
@@ -226,8 +227,8 @@ dictionary is present at `dictionaries/system_core.dic` — fetch it with
 
 **Apache-2.0** — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
-- [sudachi.rs](https://github.com/WorksApplications/sudachi.rs) (statically
-  linked into the binary): Apache-2.0.
+- [sudachi.rs](https://github.com/WorksApplications/sudachi.rs) (compiled into
+  the shipped framework binary): Apache-2.0.
 - [SudachiDict](https://github.com/WorksApplications/SudachiDict) (the runtime
   dictionary — **not** shipped by this package): Apache-2.0, containing
   third-party data whose notices must be preserved on redistribution —
