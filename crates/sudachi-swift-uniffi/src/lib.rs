@@ -10,6 +10,11 @@
 //! crate lives in the UniFFI-generated scaffolding (`#[unsafe(no_mangle)]`
 //! exports), which precludes a crate-level `#![deny(unsafe_code)]`.
 
+// Fires on the metadata buffers UniFFI generates into the scaffolding this
+// crate includes. An attribute on the macro invocation does not reach the
+// expansion, so the allow has to sit at crate level.
+#![allow(clippy::large_const_arrays)]
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
