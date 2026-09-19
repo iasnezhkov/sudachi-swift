@@ -24,8 +24,10 @@ jobs:
         run: scripts/fetch-sudachi-rs.sh
 
       - name: Check Rust formatting
-        # The workspace excludes third_party/, so --all only checks our crate.
-        run: cargo fmt --all --check
+        # Scope to our crate. `--all` descends into the third_party/ submodule's
+        # own cargo workspace (e.g. sudachi.rs' `python` crate), whose upstream
+        # formatting we must not gate our CI on — the develop-v0.7 bump surfaced this.
+        run: cargo fmt -p sudachi-swift-uniffi --check
       - name: Cache cargo + target
         uses: actions/cache@v6
         with:
@@ -75,12 +77,18 @@ jobs:
       # Pin the dictionary version so the cache key is stable and builds are
       # reproducible. The tests require the *core* edition at
       # dictionaries/system_core.dic.
-      - name: Cache SudachiDict (core, 20260723)
+      #
+      # The key carries the binary format (v1 — sudachi.rs 0.7 rejects v0) and
+      # the sudachi.rs pin, because this directory also holds char.def, unk.def
+      # and rewrite.def copied out of the pinned checkout. Without the pin in
+      # the key, a cache hit skips the fetch step and silently keeps resource
+      # files belonging to an older upstream commit.
+      - name: Cache SudachiDict (core, 20260723, v1)
         id: dict-cache
         uses: actions/cache@v6
         with:
           path: dictionaries
-          key: sudachidict-core-20260723
+          key: sudachidict-core-v1-20260723-${{ hashFiles('third_party/sudachi.rs.pin') }}
 
       - name: Fetch dictionary
         if: steps.dict-cache.outputs.cache-hit != 'true'

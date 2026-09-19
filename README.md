@@ -38,8 +38,8 @@ See [The dictionary](#the-dictionary) below; it's a one-time setup.
 ```swift
 import Sudachi
 
-// Point at a SudachiDict layout: system_core.dic with char.def / unk.def
-// next to it (scripts/fetch-dictionary.sh produces exactly this).
+// Point at a SudachiDict layout: system_core.dic with char.def / unk.def /
+// rewrite.def next to it (scripts/fetch-dictionary.sh produces exactly this).
 let dict = try SudachiDictionary(
     systemDictionary: URL(fileURLWithPath: "/path/to/dictionaries/system_core.dic"))
 
@@ -69,8 +69,8 @@ for m in try tokenizer.tokenize(text: text) {
 ## The dictionary
 
 Sudachi analyzes text against a [SudachiDict](https://github.com/WorksApplications/SudachiDict)
-system dictionary (`system_*.dic`) plus two small resource files
-(`char.def`, `unk.def`). Three editions exist:
+system dictionary (`system_*.dic`) plus three small resource files
+(`char.def`, `unk.def`, `rewrite.def`). Three editions exist:
 
 | Edition | Size on disk | Notes |
 |---|---|---|
@@ -87,7 +87,12 @@ scripts/fetch-dictionary.sh core 20260723  # pin a specific version
 ```
 
 This downloads into `dictionaries/` (gitignored) together with `char.def`,
-`unk.def`, and SudachiDict's `LEGAL` / license files.
+`unk.def`, `rewrite.def`, and SudachiDict's `LEGAL` / license files.
+
+The dictionary must match the binary format the pinned sudachi.rs expects: 0.7
+reads only the **v1** format and rejects v0, 0.6.x reads only v0. The script
+fetches v1 by default and re-downloads an existing dictionary that is in the
+wrong format; `SUDACHI_DICT_FORMAT=v0` selects the legacy path.
 
 ### For your app
 
@@ -116,7 +121,7 @@ let dir = try FileManager.default
     .url(for: .applicationSupportDirectory, in: .userDomainMask,
          appropriateFor: nil, create: true)
     .appendingPathComponent("SudachiDict", isDirectory: true)
-// ...download + unzip system_core.dic, char.def, unk.def into `dir`...
+// ...download + unzip system_core.dic, char.def, unk.def, rewrite.def into `dir`...
 var values = URLResourceValues(); values.isExcludedFromBackup = true
 var dirURL = dir; try dirURL.setResourceValues(values)
 
@@ -135,7 +140,7 @@ let dict = try SudachiDictionary(
 |---|---|
 | `SudachiDictionary` | Loaded dictionary handle (`mmap`-backed, cheap to open). Init from a directory `URL` or explicit paths. Share one across tokenizers. |
 | `SudachiTokenizer` | Tokenizer with a default split mode. Thread-safe (internally locked). |
-| `Morpheme` | Full analyzed unit: `surface`, `readingForm`, `dictionaryForm`, `normalizedForm`, `partOfSpeech: [String]`, `synonymGroupIds: [UInt32]`, `isOov`, `wordId`, `begin`, `end`. |
+| `Morpheme` | Full analyzed unit: `surface`, `readingForm`, `dictionaryForm`, `normalizedForm`, `partOfSpeech: [String]`, `synonymGroupIds: [Int32]`, `isOov`, `wordId`, `begin`, `end`. |
 | `MorphemeLite` | Compact unit for hot paths: `surface`, `dictionaryForm`, `readingForm`, `partOfSpeech` (pre-joined string), `posId`. |
 | `SplitMode` | `.a` (short units) / `.b` (medium) / `.c` (long, named-entity-like). |
 | `SudachiError` | `.DictionaryNotFound` / `.DictionaryInvalid` / `.ConfigInvalid` / `.Tokenization` — conforms to `LocalizedError`. |
@@ -206,7 +211,7 @@ Repository layout:
 │   ├── Sources/Sudachi/              Generated bindings + hand-written helpers
 │   └── Tests/SudachiTests/
 ├── scripts/                          build-ios / fetch-sudachi-rs / fetch-dictionary / lint / coverage
-├── third_party/sudachi.rs.pin        Upstream commit pin (v0.6.11); the sources
+├── third_party/sudachi.rs.pin        Upstream commit pin (v0.7.0); the sources
 │                                     are fetched into third_party/sudachi.rs/
 │                                     and are not tracked here
 └── docs/ARCHITECTURE.md              Design: what we add on top of sudachi.rs

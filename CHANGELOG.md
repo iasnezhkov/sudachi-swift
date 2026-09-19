@@ -4,6 +4,50 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Moves to sudachi.rs 0.7, tagged upstream as v0.7.0 on 2026-09-18. Not ready
+for a stable release yet: the v1 dictionaries it needs are published but not
+yet announced.
+
+### Changed
+- **Breaking (Swift API):** `Morpheme.synonymGroupIds` is now `[Int32]`, was
+  `[UInt32]`. Upstream changed the lexicon accessor to return signed ids
+  (sudachi.rs #357, which also renamed the dictionary field to the plural
+  `synonym-group-ids`).
+- Pinned sudachi.rs to v0.7.0 (`1d86a05b`, 2026-09-18). The 0.7 config
+  rework (upstream #346) removed `ConfigBuilder::resource_path`, so the wrapper
+  now installs a `PathResolver` rooted at the caller's resource directory —
+  same single-directory behaviour as before.
+- **Analysis results change** for the same text and dictionary: sudachi.rs 0.7
+  picks the lattice path with the lowest *total* cost (upstream #323) and
+  measures character-category runs correctly (#326). Loading also refuses a
+  user dictionary that was built for a different system dictionary (#335),
+  throwing `SudachiError.DictionaryInvalid`.
+- **The dictionary must now be in the "v1" binary format**: 0.7 rejects the v0
+  format outright, and loading one throws `SudachiError.DictionaryInvalid`.
+  `scripts/fetch-dictionary.sh` fetches v1 by default
+  (`SUDACHI_DICT_FORMAT=v0` restores the legacy path) and replaces an existing
+  `.dic` that is in the wrong format instead of skipping the download.
+- **The resource files must come from 0.7 too.** 0.7 no longer accepts the
+  `NOOOVBOW2` category that 0.6.x's `char.def` uses on its zero-width-joiner
+  line (0.7's copy has `NOOOVBOW NOOOVEOW` there), and it needs `rewrite.def`
+  next to `char.def` and `unk.def`: 0.7's `DefaultInputTextPlugin` resolves it
+  through the config path resolver, and a resource directory without it fails
+  the dictionary load. `scripts/fetch-dictionary.sh` now stages `rewrite.def`
+  as well. An app moving from 0.2.x replaces its dictionary and `char.def` and
+  adds `rewrite.def`; a leftover 0.6 `char.def` throws
+  `SudachiError.DictionaryInvalid` ("Invalid type NOOOVBOW2").
+
+### Fixed
+- `scripts/fetch-dictionary.sh` refreshes the copied `.def` resources by
+  comparing contents rather than modification times. A checkout can produce
+  files older than the copies already in `dictionaries/`, in which case the
+  stale copies survived every re-run.
+- CI's dictionary cache key now includes the dictionary format and the
+  sudachi.rs pin, so bumping the pin can no longer leave `.def` files from an
+  older upstream commit behind a cache hit.
+
 ## [0.2.0] - 2026-09-19
 
 ### Changed
@@ -86,6 +130,7 @@ First public release.
   hand-written layers; manual release workflow that rewrites the binary
   target URL/checksum atomically with the tag.
 
+[Unreleased]: https://github.com/iasnezhkov/sudachi-swift/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.2.0
 [0.1.1]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.1
 [0.1.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.0

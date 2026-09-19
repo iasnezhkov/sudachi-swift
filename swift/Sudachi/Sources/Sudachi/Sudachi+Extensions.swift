@@ -6,14 +6,15 @@ import Foundation
 
 extension SudachiDictionary {
     /// Opens a dictionary directory laid out like the output of
-    /// `scripts/fetch-dictionary.sh` — the system dictionary plus `char.def` /
-    /// `unk.def` sitting next to it:
+    /// `scripts/fetch-dictionary.sh` — the system dictionary plus `char.def`,
+    /// `unk.def` and `rewrite.def` sitting next to it:
     ///
     /// ```
     /// dictionaries/
     /// ├── system_core.dic
     /// ├── char.def
-    /// └── unk.def
+    /// ├── unk.def
+    /// └── rewrite.def
     /// ```
     ///
     /// The directory containing `systemDictionary` is used as the resource
