@@ -6,19 +6,23 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Preparation for sudachi.rs 0.7. Not releasable yet: upstream has not tagged 0.7,
-so the pin points at a branch commit and the v1 dictionaries this needs are
-published but not yet announced.
+Moves to sudachi.rs 0.7, tagged upstream as v0.7.0 on 2026-09-18. Not ready
+for a stable release yet: the v1 dictionaries it needs are published but not
+yet announced.
 
 ### Changed
 - **Breaking (Swift API):** `Morpheme.synonymGroupIds` is now `[Int32]`, was
   `[UInt32]`. Upstream changed the lexicon accessor to return signed ids
   (sudachi.rs #357, which also renamed the dictionary field to the plural
   `synonym-group-ids`).
-- Pinned sudachi.rs to `1e87493c` (`develop-v0.7`, 2026-06-29). The 0.7 config
+- Pinned sudachi.rs to v0.7.0 (`1d86a05b`, 2026-09-18). The 0.7 config
   rework (upstream #346) removed `ConfigBuilder::resource_path`, so the wrapper
   now installs a `PathResolver` rooted at the caller's resource directory —
   same single-directory behaviour as before.
+- **Analysis results change** for the same text and dictionary: sudachi.rs 0.7
+  picks the lattice path with the lowest *total* cost (upstream #323) and
+  measures character-category runs correctly (#326). Loading also refuses a
+  user dictionary that was built for a different system dictionary (#335).
 - **The dictionary must now be in the "v1" binary format**: 0.7 rejects the v0
   format outright. `scripts/fetch-dictionary.sh` fetches v1 by default
   (`SUDACHI_DICT_FORMAT=v0` restores the legacy path) and replaces an existing

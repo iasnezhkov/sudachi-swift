@@ -211,7 +211,7 @@ Repository layout:
 │   ├── Sources/Sudachi/              Generated bindings + hand-written helpers
 │   └── Tests/SudachiTests/
 ├── scripts/                          build-ios / fetch-sudachi-rs / fetch-dictionary / lint / coverage
-├── third_party/sudachi.rs.pin        Upstream commit pin (develop-v0.7); the sources
+├── third_party/sudachi.rs.pin        Upstream commit pin (v0.7.0); the sources
 │                                     are fetched into third_party/sudachi.rs/
 │                                     and are not tracked here
 └── docs/ARCHITECTURE.md              Design: what we add on top of sudachi.rs

@@ -5,7 +5,5 @@
 # awareness"). This replaces the old git submodule, which SwiftPM cloned into
 # every consumer's checkout for no reason.
 #
-# 1e87493c = develop-v0.7 @ 2026-06-29 (unreleased; PR #357 merge commit).
-# NOT a release tag — the 0.7 line only exists as a branch so far. Bump this to
-# the real tag once upstream ships 0.7.
-1e87493c9eabd8769433e6361ca3310a2c800cfe
+# 1d86a05b = v0.7.0 (tagged 2026-09-18; PR #365 merge commit on develop).
+1d86a05bccfaea247dab27cf20ce98dde0814d46
