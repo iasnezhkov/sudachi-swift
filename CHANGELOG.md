@@ -36,6 +36,10 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   header declares, and ship a `.dSYM` whose UUID matches the binary.
 - Frameworks carry an `Info.plist` with the deployment targets declared in
   `Package.swift`, and the Rust builds are pinned to those same targets.
+- A `.spi.yml` manifest, so the [Swift Package Index](https://swiftpackageindex.com)
+  builds and hosts the DocC documentation for the `Sudachi` module, and a DocC
+  landing page for it (`Sudachi.docc`): an overview, a quick start, and the API
+  grouped by task instead of by kind of symbol.
 
 ## [0.1.1] - 2026-07-27
 
