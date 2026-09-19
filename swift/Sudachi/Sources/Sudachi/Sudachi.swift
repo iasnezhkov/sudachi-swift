@@ -592,7 +592,8 @@ open class SudachiDictionary: SudachiDictionaryProtocol, @unchecked Sendable {
     }
     /**
      * Load a system dictionary (`system_*.dic`), optional user dictionaries,
-     * and the resource directory containing `char.def` / `unk.def`.
+     * and the resource directory containing `char.def` / `unk.def` /
+     * `rewrite.def`.
      *
      * All paths are plain filesystem paths. Throws `DictionaryNotFound` /
      * `ConfigInvalid` naming the offending path if anything is missing.

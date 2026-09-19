@@ -12,8 +12,8 @@ with no server round-trip.
 
 The package does not include a dictionary. Sudachi needs a
 [SudachiDict](https://github.com/WorksApplications/SudachiDict) system
-dictionary (`system_*.dic`) at runtime, with the `char.def` and `unk.def`
-resource files next to it. The
+dictionary (`system_*.dic`) at runtime, with the `char.def`, `unk.def` and
+`rewrite.def` resource files next to it. The
 [README](https://github.com/iasnezhkov/sudachi-swift#the-dictionary) covers
 fetching one, the three editions, and shipping it with an app.
 

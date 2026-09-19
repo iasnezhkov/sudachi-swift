@@ -29,9 +29,15 @@ yet announced.
   `scripts/fetch-dictionary.sh` fetches v1 by default
   (`SUDACHI_DICT_FORMAT=v0` restores the legacy path) and replaces an existing
   `.dic` that is in the wrong format instead of skipping the download.
-- `scripts/fetch-dictionary.sh` also stages `rewrite.def` alongside `char.def`
-  and `unk.def`: 0.7's `DefaultInputTextPlugin` resolves it through the config
-  path resolver, and a resource directory without it fails the dictionary load.
+- **The resource files must come from 0.7 too.** 0.7 no longer accepts the
+  `NOOOVBOW2` category that 0.6.x's `char.def` uses on its zero-width-joiner
+  line (0.7's copy has `NOOOVBOW NOOOVEOW` there), and it needs `rewrite.def`
+  next to `char.def` and `unk.def`: 0.7's `DefaultInputTextPlugin` resolves it
+  through the config path resolver, and a resource directory without it fails
+  the dictionary load. `scripts/fetch-dictionary.sh` now stages `rewrite.def`
+  as well. An app moving from 0.2.x replaces its dictionary and `char.def` and
+  adds `rewrite.def`; a leftover 0.6 `char.def` throws
+  `SudachiError.DictionaryInvalid` ("Invalid type NOOOVBOW2").
 
 ### Fixed
 - `scripts/fetch-dictionary.sh` refreshes the copied `.def` resources by
