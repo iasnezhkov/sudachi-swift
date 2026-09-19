@@ -1,0 +1,7 @@
+# Swift Package Index manifest: https://swiftpackageindex.com/SwiftPackageIndex/SPIManifest/documentation/spimanifest
+# The index builds and hosts DocC for the Sudachi module. Docs are generated on
+# macOS (the default), which the xcframework ships a slice for.
+version: 1
+builder:
+  configs:
+    - documentation_targets: [Sudachi]

@@ -4,6 +4,43 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims
 to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-19
+
+### Changed
+- **The xcframework now ships dynamic frameworks instead of static archives.**
+  Xcode's previews JIT cannot materialise symbols out of static-archive members,
+  so in a consuming app every `#Preview` whose object referenced the FFI symbols
+  failed to link (`Symbols not found: _uniffi_sudachi_swift_…`). Each slice is
+  now a `sudachi_swiftFFI.framework` wrapping the Rust cdylib, which Xcode
+  embeds and signs automatically. The Swift API is unchanged; consumers only
+  need to update.
+- Running the Swift tests under Swift Build needs a symlink bridge: it copies
+  the framework beside `Products/Debug/PackageFrameworks` but only rpaths *into*
+  that directory, so `scripts/coverage.sh` links the two before testing.
+- The wrapper crate no longer builds a `staticlib`; nothing consumed the 31 MB
+  archive once the xcframework went dynamic.
+
+### Added
+- **Per-slice `.dSYM`s in the xcframework.** The release profile emits
+  line-tables-only debug info, `scripts/build-ios.sh` lifts a `.dSYM` with
+  `dsymutil` before stripping each framework binary, and `-create-xcframework`
+  gets a `-debug-symbols` per slice. Previously there were no symbols to ship at
+  all: consuming apps got `Upload Symbols Failed … did not include a dSYM` on
+  every TestFlight upload, and Rust frames in crash reports resolved no further
+  than the nearest exported `uniffi_*` symbol. The shipped binaries are as
+  stripped as before (2.2 MB, 153 exported symbols per slice), and even with the
+  `.dSYM`s the release archive drops from 29.5 MB to 10 MB — a linked dylib is a
+  fraction of the static archive it replaces.
+- `scripts/build-ios.sh` verifies every slice before packaging it: it must be a
+  dylib, carry no embedded LLVM bitcode, export every FFI symbol the generated
+  header declares, and ship a `.dSYM` whose UUID matches the binary.
+- Frameworks carry an `Info.plist` with the deployment targets declared in
+  `Package.swift`, and the Rust builds are pinned to those same targets.
+- A `.spi.yml` manifest, so the [Swift Package Index](https://swiftpackageindex.com)
+  builds and hosts the DocC documentation for the `Sudachi` module, and a DocC
+  landing page for it (`Sudachi.docc`): an overview, a quick start, and the API
+  grouped by task instead of by kind of symbol.
+
 ## [0.1.1] - 2026-07-27
 
 ### Changed
@@ -49,5 +86,6 @@ First public release.
   hand-written layers; manual release workflow that rewrites the binary
   target URL/checksum atomically with the tag.
 
+[0.2.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.2.0
 [0.1.1]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.1
 [0.1.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.0

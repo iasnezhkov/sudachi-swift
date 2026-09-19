@@ -33,7 +33,14 @@ cargo llvm-cov --package sudachi-swift-uniffi --tests \
 echo ""
 echo "==> Swift coverage (gate: 100% lines on Sudachi+Extensions.swift)"
 cd swift/Sudachi
-swift test --enable-code-coverage
+swift build --build-tests --enable-code-coverage
+# Swift Build copies the framework beside PackageFrameworks/ but rpaths into it.
+for products in .build/out/Products/Debug .build/*/debug; do
+  if [ -d "$products/PackageFrameworks" ] && [ -d "$products/sudachi_swiftFFI.framework" ]; then
+    ln -sfn "../sudachi_swiftFFI.framework" "$products/PackageFrameworks/sudachi_swiftFFI.framework"
+  fi
+done
+swift test --skip-build --enable-code-coverage
 COV_JSON="$(swift test --show-codecov-path)"
 python3 - "$COV_JSON" <<'PY'
 import json, sys

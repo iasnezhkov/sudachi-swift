@@ -95,7 +95,9 @@ When you add or change a function/type exposed to Swift:
    xcframework. Commit the regenerated `Sudachi.swift`.
 4. Add/adjust tests under `swift/Sudachi/Tests/`.
 5. Update `README.md` (API table) and `docs/ARCHITECTURE.md` if the surface or
-   design rationale changed.
+   design rationale changed, and list any new public symbol under a topic in
+   `swift/Sudachi/Sources/Sudachi/Sudachi.docc/Sudachi.md` — the landing page
+   of the documentation the Swift Package Index hosts.
 
 Keep additions **additive and thin** — the goal is to stay a small wrapper over
 sudachi.rs, not to fork it. See `docs/ARCHITECTURE.md` for what is intentionally

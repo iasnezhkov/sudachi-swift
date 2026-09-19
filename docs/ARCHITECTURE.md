@@ -18,7 +18,7 @@ Swift app
    │  import Sudachi
    ▼
 swift/Sudachi/…/Sudachi.swift   ← UniFFI-generated Swift (do not edit)
-   │  C FFI (Sudachi.xcframework, a static lib)
+   │  C FFI (Sudachi.xcframework: a dynamic framework per slice)
    ▼
 crates/sudachi-swift-uniffi/src/lib.rs   ← OUR wrapper (one small file)
    │  Rust API
@@ -76,8 +76,12 @@ several tokenizers rather than relying on a single one.
 - `scripts/build-ios.sh` cross-compiles the wrapper for three Apple targets —
   all arm64: iOS device, iOS simulator, macOS (x86_64/Intel slices are
   intentionally dropped; they'd roughly double the artifact, and Intel Macs can
-  build from source) — runs `uniffi-bindgen`, strips the slices, and assembles
-  `build/Sudachi.xcframework`.
+  build from source) — runs `uniffi-bindgen`, wraps each cdylib in a
+  `sudachi_swiftFFI.framework` with its own `.dSYM`, verifies the slices, and
+  assembles `build/Sudachi.xcframework`.
+- The slices are **dynamic** frameworks, not static archives: Xcode's previews
+  JIT cannot materialise symbols out of archive members, so a statically linked
+  consumer loses every `#Preview` that touches the tokenizer.
 - The package is consumed remotely as a **binary `.xcframework` target**
   (URL + checksum in the root `Package.swift`), the standard way Rust-backed
   Swift packages ship (cf. Mozilla application-services, Ferrostar).
