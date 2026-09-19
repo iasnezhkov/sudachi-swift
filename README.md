@@ -140,7 +140,7 @@ let dict = try SudachiDictionary(
 |---|---|
 | `SudachiDictionary` | Loaded dictionary handle (`mmap`-backed, cheap to open). Init from a directory `URL` or explicit paths. Share one across tokenizers. |
 | `SudachiTokenizer` | Tokenizer with a default split mode. Thread-safe (internally locked). |
-| `Morpheme` | Full analyzed unit: `surface`, `readingForm`, `dictionaryForm`, `normalizedForm`, `partOfSpeech: [String]`, `synonymGroupIds: [UInt32]`, `isOov`, `wordId`, `begin`, `end`. |
+| `Morpheme` | Full analyzed unit: `surface`, `readingForm`, `dictionaryForm`, `normalizedForm`, `partOfSpeech: [String]`, `synonymGroupIds: [Int32]`, `isOov`, `wordId`, `begin`, `end`. |
 | `MorphemeLite` | Compact unit for hot paths: `surface`, `dictionaryForm`, `readingForm`, `partOfSpeech` (pre-joined string), `posId`. |
 | `SplitMode` | `.a` (short units) / `.b` (medium) / `.c` (long, named-entity-like). |
 | `SudachiError` | `.DictionaryNotFound` / `.DictionaryInvalid` / `.ConfigInvalid` / `.Tokenization` — conforms to `LocalizedError`. |
