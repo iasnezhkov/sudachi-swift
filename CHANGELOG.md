@@ -22,9 +22,11 @@ yet announced.
 - **Analysis results change** for the same text and dictionary: sudachi.rs 0.7
   picks the lattice path with the lowest *total* cost (upstream #323) and
   measures character-category runs correctly (#326). Loading also refuses a
-  user dictionary that was built for a different system dictionary (#335).
+  user dictionary that was built for a different system dictionary (#335),
+  throwing `SudachiError.DictionaryInvalid`.
 - **The dictionary must now be in the "v1" binary format**: 0.7 rejects the v0
-  format outright. `scripts/fetch-dictionary.sh` fetches v1 by default
+  format outright, and loading one throws `SudachiError.DictionaryInvalid`.
+  `scripts/fetch-dictionary.sh` fetches v1 by default
   (`SUDACHI_DICT_FORMAT=v0` restores the legacy path) and replaces an existing
   `.dic` that is in the wrong format instead of skipping the download.
 - `scripts/fetch-dictionary.sh` also stages `rewrite.def` alongside `char.def`
