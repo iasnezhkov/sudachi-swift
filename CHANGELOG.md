@@ -6,6 +6,16 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `scripts/fetch-dictionary.sh` no longer trips over what an earlier run left
+  in `dictionaries/`. It took the first `sudachi-dictionary-*` directory it
+  found as the one it had just unpacked, so a leftover from an interrupted run
+  could be installed as the dictionary and still exit 0. The next run then
+  stopped at unzip's overwrite prompt. Downloads now unpack in a private
+  directory that is removed on any exit, including Ctrl-C. A dictionary in the
+  wrong format is replaced only once its successor is unpacked, so a failed
+  download no longer deletes it.
+
 ## [0.3.0] - 2026-09-28
 
 Moves to sudachi.rs 0.7.0 and the v1 dictionary format. Upstream calls 0.7.x an

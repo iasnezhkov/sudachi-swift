@@ -68,35 +68,50 @@ dic_format() {
   fi
 }
 
-if [ -f "$TARGET_DIC" ] && [ "$(dic_format "$TARGET_DIC")" != "$FORMAT" ]; then
-  echo "==> $TARGET_DIC is $(dic_format "$TARGET_DIC"), need $FORMAT — re-fetching"
-  rm -f "$TARGET_DIC"
+FETCH=1
+if [ -f "$TARGET_DIC" ]; then
+  if [ "$(dic_format "$TARGET_DIC")" = "$FORMAT" ]; then
+    FETCH=0
+  else
+    # Left in place until the new one is unpacked, so a failed download does
+    # not also cost the file we had.
+    echo "==> $TARGET_DIC is $(dic_format "$TARGET_DIC"), need $FORMAT — re-fetching"
+  fi
 fi
 
-if [ -f "$TARGET_DIC" ]; then
+if [ "$FETCH" -eq 0 ]; then
   echo "==> $TARGET_DIC already exists, skipping download"
   echo "    delete it to re-fetch"
 else
+  # Download and unpack in a private directory, removed on any exit. Anything
+  # an interrupted run left in dictionaries/ (a zip, a sudachi-dictionary-*
+  # directory) can then neither be mistaken for this download nor make unzip
+  # stop to ask about overwriting it.
+  WORK_DIR="$(mktemp -d "$DICT_DIR/.fetch.XXXXXX")"
+  trap 'rm -rf "$WORK_DIR"' EXIT
+  # bash skips the EXIT trap when a signal kills it; exiting runs it.
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
   echo "==> Downloading $URL"
-  ZIP="$DICT_DIR/${DICT_NAME}.zip"
+  ZIP="$WORK_DIR/${DICT_NAME}.zip"
   # -f makes an HTTP error (e.g. a typo'd version -> 404) fail the script
   # instead of saving an error page as a "zip".
   curl -fL -o "$ZIP" "$URL"
 
   echo "==> Unzipping"
-  UNZIP_DIR="$DICT_DIR/${DICT_NAME}"
-  rm -rf "$UNZIP_DIR"
-  unzip -q "$ZIP" -d "$DICT_DIR"
+  unzip -q "$ZIP" -d "$WORK_DIR/unzipped"
 
   # The zip extracts to a dated directory like
   # sudachi-dictionary-20260723/system_<edition>.dic, not the literal
   # ${VERSION} we passed. Find what actually came out.
-  ACTUAL_DIR="$(find "$DICT_DIR" -maxdepth 1 -type d -name 'sudachi-dictionary-*' | head -1)"
-  if [ -z "$ACTUAL_DIR" ]; then
-    echo "error: could not locate unzipped dictionary directory" >&2
+  SRC_DIC="$(find "$WORK_DIR/unzipped" -type f -name "system_${EDITION}.dic" | head -1)"
+  if [ -z "$SRC_DIC" ]; then
+    echo "error: system_${EDITION}.dic not found in $URL" >&2
     exit 1
   fi
-  mv "$ACTUAL_DIR/system_${EDITION}.dic" "$TARGET_DIC"
+  ACTUAL_DIR="$(dirname "$SRC_DIC")"
+  mv "$SRC_DIC" "$TARGET_DIC"
 
   # Keep the dictionary's attribution files next to the .dic — SudachiDict's
   # LEGAL notice must accompany the data if you redistribute it (see NOTICE).
@@ -105,8 +120,8 @@ else
   done
 
   echo "==> Cleaning up"
-  rm -f "$ZIP"
-  rm -rf "$ACTUAL_DIR"
+  rm -rf "$WORK_DIR"
+  trap - EXIT INT TERM
 fi
 
 # char.def, unk.def and rewrite.def live in the sudachi.rs repo (Apache-2.0 with
