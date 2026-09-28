@@ -24,7 +24,7 @@ use thiserror::Error;
 use sudachi::analysis::mlist::MorphemeList;
 use sudachi::analysis::stateful_tokenizer::StatefulTokenizer;
 use sudachi::analysis::Mode as SudachiMode;
-use sudachi::config::ConfigBuilder;
+use sudachi::config::{ConfigBuilder, PathResolver};
 use sudachi::dic::dictionary::JapaneseDictionary;
 
 uniffi::include_scaffolding!("sudachi_swift");
@@ -74,6 +74,9 @@ impl SudachiError {
             }
             S::ConfigError(_) => Self::ConfigInvalid { message },
             S::InvalidHeader(_)
+            | S::InvalidDescription(_)
+            | S::DictionaryCompatibility(_)
+            | S::ConnectionMatrixMissing
             | S::LexiconSetError(_)
             | S::InvalidCharacterCategory(_)
             | S::InvalidDataFormat(..)
@@ -121,7 +124,7 @@ pub struct Morpheme {
     pub dictionary_form: String,
     pub normalized_form: String,
     pub part_of_speech: Vec<String>,
-    pub synonym_group_ids: Vec<u32>,
+    pub synonym_group_ids: Vec<i32>,
     pub is_oov: bool,
     pub word_id: u32,
     pub begin: u32,
@@ -157,9 +160,13 @@ impl SudachiDictionary {
         // naming the offending path, before we ever touch the loader.
         Self::validate_paths(&system_dict_path, &user_dict_paths, &resource_dir)?;
 
+        // sudachi.rs 0.7 (#346) replaced `ConfigBuilder::resource_path` with a
+        // `PathResolver`: resource files (`char.def`, `unk.def`, `rewrite.def`, …)
+        // are resolved against the resolver's roots. Root it at the caller's
+        // resource dir to preserve the previous single-directory behavior.
         let builder = Self::config_builder(DEFAULT_CONFIG_JSON)?
             .system_dict(PathBuf::from(&system_dict_path))
-            .resource_path(PathBuf::from(&resource_dir));
+            .with_resolver(PathResolver::from_path(PathBuf::from(&resource_dir)));
         let builder = Self::apply_user_dicts(builder, &user_dict_paths);
 
         let config = builder.build();
@@ -469,6 +476,44 @@ mod tests {
         // Any dictionary-structure variant (here: a malformed data row) must
         // classify as DictionaryInvalid.
         let sudachi_err = sudachi::error::SudachiError::InvalidDataFormat(0, "bad row".to_string());
+        assert!(matches!(
+            SudachiError::from(sudachi_err),
+            SudachiError::DictionaryInvalid { .. }
+        ));
+    }
+
+    #[test]
+    fn v0_dictionary_maps_to_dictionary_invalid() {
+        // sudachi.rs 0.7 reads only the v1 format and rejects a v0 `.dic` with
+        // InvalidDescription(V0Version) — what an app hits when it updates the
+        // package but still ships the old dictionary.
+        let sudachi_err: sudachi::error::SudachiError =
+            sudachi::dic::description::DescriptionError::V0Version.into();
+        assert!(matches!(
+            SudachiError::from(sudachi_err),
+            SudachiError::DictionaryInvalid { .. }
+        ));
+    }
+
+    #[test]
+    fn incompatible_user_dictionary_maps_to_dictionary_invalid() {
+        // 0.7 refuses a user dictionary built against a different system
+        // dictionary (upstream #335).
+        let sudachi_err: sudachi::error::SudachiError =
+            sudachi::dic::error::DictionaryCompatibilityError::UserDictionaryWithoutIndex {
+                system_signature: "system".to_string(),
+                user_reference: "other".to_string(),
+            }
+            .into();
+        assert!(matches!(
+            SudachiError::from(sudachi_err),
+            SudachiError::DictionaryInvalid { .. }
+        ));
+    }
+
+    #[test]
+    fn missing_connection_matrix_maps_to_dictionary_invalid() {
+        let sudachi_err = sudachi::error::SudachiError::ConnectionMatrixMissing;
         assert!(matches!(
             SudachiError::from(sudachi_err),
             SudachiError::DictionaryInvalid { .. }

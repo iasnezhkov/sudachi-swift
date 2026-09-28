@@ -43,7 +43,8 @@ enum SudachiError {
 /// is one dictionary, one tokenizer per worker.
 interface SudachiDictionary {
   /// Load a system dictionary (`system_*.dic`), optional user dictionaries,
-  /// and the resource directory containing `char.def` / `unk.def`.
+  /// and the resource directory containing `char.def` / `unk.def` /
+  /// `rewrite.def`.
   ///
   /// All paths are plain filesystem paths. Throws `DictionaryNotFound` /
   /// `ConfigInvalid` naming the offending path if anything is missing.
@@ -122,7 +123,7 @@ dictionary Morpheme {
   /// Part-of-speech hierarchy, most-general first (品詞, 6 levels).
   sequence<string> part_of_speech;
   /// Sudachi synonym group ids this morpheme belongs to (may be empty).
-  sequence<u32> synonym_group_ids;
+  sequence<i32> synonym_group_ids;
   /// True if the morpheme is out-of-vocabulary (not found in the dictionary).
   boolean is_oov;
   /// Raw dictionary word id (stable within one dictionary build).
