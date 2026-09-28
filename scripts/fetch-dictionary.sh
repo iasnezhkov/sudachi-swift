@@ -26,9 +26,8 @@ VERSION="${2:-latest}"
 # Which binary format we need is dictated by third_party/sudachi.rs.pin, not by
 # the caller: sudachi.rs 0.7 reads only "v1" and rejects v0 outright ("Invalid
 # description: V0 version"), while 0.6.x reads only v0. Keep this in step with
-# the pin. v1 builds sit under an extra /v1/ path segment on the same CDN —
-# published since 2026-07-27 but deliberately absent from the raw index page
-# (SudachiDict#61), so they resolve by URL only.
+# the pin. v1 builds sit under an extra /v1/ path segment on the same CDN, which
+# the SudachiDict README documents as the primary download (v0 is legacy).
 FORMAT="${SUDACHI_DICT_FORMAT:-v1}"
 case "$FORMAT" in
   v1) FORMAT_PATH="v1/" ;;

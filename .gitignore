@@ -37,6 +37,3 @@ Package.resolved
 docs/upstream-watch.md
 docs/RELEASE-PLAN.md
 docs/upstream-tickets-0.7.md
-
-# Local, machine-specific tool config — never publish.
-.claude/settings.local.json

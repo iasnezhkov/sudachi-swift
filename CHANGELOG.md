@@ -6,9 +6,17 @@ to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Moves to sudachi.rs 0.7, tagged upstream as v0.7.0 on 2026-09-18. Not ready
-for a stable release yet: the v1 dictionaries it needs are published but not
-yet announced.
+## [0.3.0] - 2026-09-28
+
+Moves to sudachi.rs 0.7.0 and the v1 dictionary format. Upstream calls 0.7.x an
+intermediate series before its 1.0 and warns that even patch releases may change
+behaviour, so each sudachi-swift release pins one exact sudachi.rs version.
+
+Verified against SudachiDict v20260723.1, the first official v1 release.
+
+**Upgrading from 0.2.x:** replace the system dictionary with a v1 build, replace
+`char.def`, and add `rewrite.def` next to it (details below).
+`scripts/fetch-dictionary.sh` produces exactly this layout.
 
 ### Changed
 - **Breaking (Swift API):** `Morpheme.synonymGroupIds` is now `[Int32]`, was
@@ -130,7 +138,8 @@ First public release.
   hand-written layers; manual release workflow that rewrites the binary
   target URL/checksum atomically with the tag.
 
-[Unreleased]: https://github.com/iasnezhkov/sudachi-swift/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/iasnezhkov/sudachi-swift/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.3.0
 [0.2.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.2.0
 [0.1.1]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.1
 [0.1.0]: https://github.com/iasnezhkov/sudachi-swift/releases/tag/v0.1.0
